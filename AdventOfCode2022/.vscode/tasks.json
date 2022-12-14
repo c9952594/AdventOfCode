@@ -1,0 +1,70 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "shell",
+			"group": {
+				"kind": "test",
+				"isDefault": true
+			},
+			"label": "Run all tests",
+			"command": "dotnet",
+			"args": [
+				"test"
+			],
+		},
+		{
+			"type": "shell",
+			"group": {
+				"kind": "test",
+				"isDefault": true
+			},
+			"label": "Watch all tests",
+			"command": "dotnet",
+			"args": [
+				"watch",
+				"test",
+				"--project",
+				"AdventOfCode2022.sln"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			}
+		},
+		{
+			"type": "shell",
+			"group": {
+				"kind": "test",
+				"isDefault": true
+			},
+			"label": "FormatInput: input",
+			"command": "dotnet",
+			"args": [
+				"fsi",
+				"./FormatInput.fsx",
+				"input",
+				"./FormatInput"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			}
+		},
+		{
+			"type": "shell",
+			"group": {
+				"kind": "test",
+				"isDefault": true
+			},
+			"label": "FormatInput: example",
+			"command": "dotnet",
+			"args": [
+				"fsi",
+				"FormatInput.fsx",
+				"example",
+				"FormatInput"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			}
+		}
+}
