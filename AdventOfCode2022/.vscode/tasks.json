@@ -2,69 +2,73 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"type": "shell",
-			"group": {
-				"kind": "test",
-				"isDefault": true
-			},
-			"label": "Run all tests",
+			"label": "Run all tests (terminal)",
 			"command": "dotnet",
+			"type": "shell",
 			"args": [
 				"test"
 			],
+			"problemMatcher": "$msCompile"
 		},
 		{
-			"type": "shell",
-			"group": {
-				"kind": "test",
-				"isDefault": true
-			},
-			"label": "Watch all tests",
+			"label": "Debug all tests (need attaching)",
 			"command": "dotnet",
+			"type": "shell",
+			"options": {
+				"cwd": "${workspaceFolder}/AdventOfCode2022",
+				"env": {
+					"VSTEST_HOST_DEBUG": "1"
+				}
+			},
+			"args": [
+				"test",
+				"/property:GenerateFullPaths=true",
+        		"/consoleloggerparameters:NoSummary"
+			],
+			"problemMatcher": "$msCompile"
+		},
+		{
+			"label": "Watch all tests (terminal)",
+			"command": "dotnet",
+			"type": "shell",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
 			"args": [
 				"watch",
 				"test",
 				"--project",
 				"AdventOfCode2022.sln"
 			],
-			"options": {
-				"cwd": "${workspaceFolder}"
-			}
+			"problemMatcher": "$msCompile"
 		},
 		{
-			"type": "shell",
-			"group": {
-				"kind": "test",
-				"isDefault": true
-			},
 			"label": "FormatInput: input",
 			"command": "dotnet",
+			"type": "shell",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
 			"args": [
 				"fsi",
 				"./FormatInput.fsx",
 				"input",
 				"./FormatInput"
 			],
-			"options": {
-				"cwd": "${workspaceFolder}"
-			}
 		},
 		{
-			"type": "shell",
-			"group": {
-				"kind": "test",
-				"isDefault": true
-			},
 			"label": "FormatInput: example",
 			"command": "dotnet",
+			"type": "shell",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
 			"args": [
 				"fsi",
 				"FormatInput.fsx",
 				"example",
 				"FormatInput"
 			],
-			"options": {
-				"cwd": "${workspaceFolder}"
-			}
-		}
+		},
+	]
 }
