@@ -1,3 +1,14 @@
+module AdventOfCode2022_Day14
+
+VerifyTests.VerifierSettings.AddExtraSettings
+    (fun settings ->
+        settings.NullValueHandling <- Argon.NullValueHandling.Include
+        settings.DefaultValueHandling <- Argon.DefaultValueHandling.Include
+    )
+
+open NUnit.Framework
+open FParsec
+
 let input =
     [|
         "461,87 -> 461,80 -> 461,87 -> 463,87 -> 463,80 -> 463,87 -> 465,87 -> 465,80 -> 465,87 -> 467,87 -> 467,86 -> 467,87"
@@ -149,3 +160,119 @@ let input =
         "466,74 -> 466,71 -> 466,74 -> 468,74 -> 468,64 -> 468,74 -> 470,74 -> 470,65 -> 470,74 -> 472,74 -> 472,68 -> 472,74 -> 474,74 -> 474,68 -> 474,74 -> 476,74 -> 476,71 -> 476,74 -> 478,74 -> 478,65 -> 478,74 -> 480,74 -> 480,73 -> 480,74 -> 482,74 -> 482,64 -> 482,74"
         "461,87 -> 461,80 -> 461,87 -> 463,87 -> 463,80 -> 463,87 -> 465,87 -> 465,80 -> 465,87 -> 467,87 -> 467,86 -> 467,87"
     |]
+
+let example =
+    [|
+        "498,4 -> 498,6 -> 496,6"
+        "503,4 -> 502,4 -> 502,9 -> 494,9"
+    |]
+
+let parseInput (input : string array) : (int * int) list =
+    input
+    |> List.ofArray
+    |> List.collect
+        (fun line ->
+            line.Split(" -> ", System.StringSplitOptions.RemoveEmptyEntries)
+            |> List.ofArray
+            |> List.map
+                (fun point ->
+                    let split = point.Split(",")
+                    (int split.[0], int split.[1])
+                )
+            |> List.pairwise
+            |> List.collect
+                (fun ((x1, y1), (x2, y2)) ->
+                    if (x1 = x2) then
+                        let minY = min y1 y2
+                        let maxY = max y1 y2
+                        [ minY..maxY ]
+                        |> List.map (fun y -> (x1, y))
+                    else
+                        let minX = min x1 x2
+                        let maxX = max x1 x2
+                        [ minX..maxX ]
+                        |> List.map (fun x -> (x, y1))
+                )
+        )
+    |> List.distinct
+
+let dropSand 
+    (highestY : int)
+    (wallPointSet : Set<int * int>)
+    =
+    let pointIsEmpty =
+        (fun x y ->
+            wallPointSet |> Set.contains (x, y) |> not
+        )
+
+    let rec dropSand' x y =
+        if (y > highestY) then
+            None
+        elif (wallPointSet |> Set.contains (500, 0)) then
+            None
+        elif (pointIsEmpty x (y + 1)) then
+            dropSand' x (y + 1)
+        elif (pointIsEmpty (x - 1) (y + 1)) then
+            dropSand' (x - 1) (y + 1)
+        elif (pointIsEmpty (x + 1) (y + 1)) then
+            dropSand' (x + 1) (y + 1)
+        else
+            wallPointSet 
+            |> Set.add (x, y) 
+            |> Some
+    dropSand' 500 0
+
+let dropSandUntilEdgeHit wallPoints =
+    let highestY = 
+        wallPoints 
+        |> List.maxBy 
+            (fun (_, y) -> y) 
+        |> snd
+
+    wallPoints
+    |> Set.ofList
+    |> Seq.unfold (fun wallPointSet ->
+        match dropSand highestY wallPointSet with
+        | Some state' -> 
+            Some (state', state')
+        | None -> 
+            None
+    )
+    |> Seq.last
+
+[<Test>]
+let Day14_Part1 () =
+    let wallPoints =
+        input
+        |> parseInput
+
+    let sandDropped =
+        dropSandUntilEdgeHit wallPoints
+
+    Assert.AreEqual(644, sandDropped.Count - wallPoints.Length)
+
+[<Test>]
+let Day14_Part2 () =    
+    let wallPoints =
+        let wallPoints' =
+            input
+            |> parseInput
+            
+        let highestY = 
+            wallPoints'
+            |> List.maxBy 
+                (fun (_, y) -> y) 
+            |> snd
+            
+        wallPoints'
+        |> List.append 
+            (
+                [-10000..10000]
+                |> List.map (fun x -> (x, highestY + 2))
+            )
+
+    let sandDropped =
+        dropSandUntilEdgeHit wallPoints
+
+    Assert.AreEqual(27324, sandDropped.Count - wallPoints.Length)
+    

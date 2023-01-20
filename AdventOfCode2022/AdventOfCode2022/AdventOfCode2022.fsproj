@@ -5,6 +5,19 @@
     <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>
   <ItemGroup>
+    <!-- <Compile Include="Day01.fs" />
+    <Compile Include="Day02.fs" />
+    <Compile Include="Day03.fs" />
+    <Compile Include="Day04.fs" />
+    <Compile Include="Day05.fs" />
+    <Compile Include="Day06.fs" />
+    <Compile Include="Day07.fs" />
+    <Compile Include="Day08.fs" />
+    <Compile Include="Day09.fs" />
+    <Compile Include="Day10.fs" />
+    <Compile Include="Day11.fs" />
+    <Compile Include="Day12.fs" />
+    <Compile Include="Day13.fs" /> -->
     <Compile Include="Day01.fs" />
     <Compile Include="Day02.fs" />
     <Compile Include="Day03.fs" />
@@ -14,14 +27,19 @@
     <Compile Include="Day07.fs" />
     <Compile Include="Day08.fs" />
     <Compile Include="Day09.fs" />
-    <Compile Include="Day10.fs" /> 
+    <Compile Include="Day10.fs" />
     <Compile Include="Day11.fs" />
+    <Compile Include="Day12.fs" />
+    <Compile Include="Day13.fs" />
+    <Compile Include="Day14.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="fparsec" Version="1.1.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.11.0" />
-    <PackageReference Include="NUnit" Version="3.13.2" />
+    <PackageReference Include="NUnit" Version="3.13.3" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.0.0" />
     <PackageReference Include="coverlet.collector" Version="3.1.0" />
+    <PackageReference Include="Verify.NUnit" Version="19.5.0" />
   </ItemGroup>
 </Project>
