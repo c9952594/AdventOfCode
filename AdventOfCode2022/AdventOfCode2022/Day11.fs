@@ -246,13 +246,14 @@ let Day11_Part1 () =
         let runAllMonkeys = runAllMonkeys runMonkey 
 
         runRounds runAllMonkeys monkeys
-        |> Seq.take 21
+        |> Seq.skip 1
+        |> Seq.take 20
 
     let finalNumberOfItemsInspected =
         rounds
         |> Seq.last
         |> Seq.map (fun monkey -> monkey.numberOfItemsInspected)
-        |> Seq.sortByDescending id
+        |> Seq.sortDescending
         |> Seq.take 2
         |> Seq.reduce (*)
 
@@ -268,25 +269,24 @@ let Day11_Part2 () =
         |> Array.chunkBySize 6
         |> Array.map parseMonkey
     
-    let rounds = 
-        let calmDown  =
-            let rec gcd x y = if y = 0I then abs x else gcd y (x % y)
-            let lcm x y = x * y / (gcd x y)
+    let rec gcd x y = if y = 0I then abs x else gcd y (x % y)
+    let lcm x y = x * y / (gcd x y)
 
-            let leastCommonMultiple = 
-                monkeys
-                |> Array.map (fun monkey -> monkey.divisor)
-                |> Array.reduce lcm 
-                    
-            (fun (worry : bigint) -> 
-                worry % leastCommonMultiple
-            )
-            
+    let leastCommonMultiple = 
+        monkeys
+        |> Array.map (fun monkey -> monkey.divisor)
+        |> Array.reduce lcm 
+    
+    let rounds = 
+        let calmDown (worry : bigint) = 
+            worry % leastCommonMultiple
+        
         let runMonkey = runMonkey calmDown
         let runAllMonkeys = runAllMonkeys runMonkey 
 
         runRounds runAllMonkeys monkeys
-        |> Seq.take 10001
+        |> Seq.skip 1
+        |> Seq.take 10000
 
     let finalNumberOfItemsInspected =
         rounds

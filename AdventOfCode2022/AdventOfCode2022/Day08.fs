@@ -125,11 +125,7 @@ type Tree =
         point : Point
         height : int
     }
-
-type Visibility =
-    | Visible of Tree
-    | Invisible of Tree
-
+    
 let inputToTrees (lines : string array) =
     lines
     |> Array.mapi (fun y row ->
@@ -137,39 +133,11 @@ let inputToTrees (lines : string array) =
         |> Seq.mapi (fun x tree ->
             {
                 point = { x = x ; y = y }
-                height = int (sprintf "%c" tree)
+                height = int $"%c{tree}"
             }
         )
         |> Array.ofSeq
     )
-
-let convertVisibilityToString (visibilities : list<list<Visibility>>) : string =
-    visibilities
-    |> List.map (fun row ->
-        row
-        |> List.map (fun visibility ->
-            match visibility with
-            | Visible tree -> 
-                sprintf "%iV" tree.height
-            | Invisible tree -> 
-                sprintf "%iI" tree.height
-        )
-        |> String.concat " "
-    )
-    |> String.concat "\n"
-
-let convertTreeToString trees =
-    trees
-    |> List.map (fun row ->
-        row
-        |> List.map (fun tree ->
-            sprintf "%i" tree.height
-        )
-        |> String.concat " "
-    )
-    |> String.concat "\n"
-
-
 
 [<Test>]
 let Day08_Part1 () = 
@@ -179,106 +147,124 @@ let Day08_Part1 () =
         |> Array.map List.ofArray
         |> List.ofArray
 
-    let rec findVisible (highestTreeFound : int) (trees : Tree list) =
-        match trees with
-        | [] -> []
-        | head :: tail ->
-            let { height = height } = head
-            if height > highestTreeFound
-            then Visible head :: findVisible height tail
-            else Invisible head :: findVisible highestTreeFound tail
-
-    let numberOfVisibleTrees = 
-        seq {
-            yield trees // Left to right
-            yield trees |> List.map List.rev // Right to left
-            yield trees |> List.transpose // Top to bottom
-            yield trees |> List.transpose |> List.map List.rev // Bottom to top
-        }
-        |> Seq.concat
-        |> Seq.map (findVisible -1)
-        |> Seq.collect id
-        |> Seq.choose 
-            (function
-             | Visible tree -> Some (tree.point)
-             | Invisible _ -> None)
-        |> Seq.distinct
-        |> Seq.length
-
-    Assert.AreEqual(1803, numberOfVisibleTrees)
-
-[<Test>]
-let Day08_Part2 () =
-    let trees = 
-        input
-        |> inputToTrees
-
-    let pointToTree (point : Point) =
-        trees
-        |> Array.tryItem point.y
-        |> Option.bind 
-            (fun row -> 
-                row 
-                |> Array.tryItem point.x
+    let rows =
+        trees.Length - 1
+        
+    let columns =
+        trees.[0].Length - 1
+    
+    let visible =
+        [|1..rows - 1|]
+        |> Array.collect
+            (fun y ->
+                [|1..columns - 1|]
+                |> Array.filter
+                    (fun x ->
+                        let height =
+                            trees.[y].[x].height
+                        
+                        [|0 .. y-1|]
+                        |> Array.exists
+                            (fun y' ->
+                                trees.[y'].[x].height >= height)
+                        |> not
+                        ||
+                        [|y+1 .. rows|]
+                        |> Array.exists
+                            (fun y' ->
+                                trees.[y'].[x].height >= height)
+                        |> not
+                        ||
+                        [|0 .. x-1|]
+                        |> Array.exists
+                            (fun x' ->
+                                trees.[y].[x'].height >= height)
+                        |> not
+                        ||
+                        [|x+1 .. columns|]
+                        |> Array.exists
+                            (fun x' ->
+                                trees.[y].[x'].height >= height)
+                        |> not
+                    )
             )
 
-    let rec look (nextPointFunc : Point -> Point) (fromPoint : Point) =
-        seq {
-            let nextPoint = nextPointFunc fromPoint
-            let tree = pointToTree nextPoint
+    Assert.AreEqual(1803, visible.Length + columns + columns + rows + rows)
 
-            match tree with
-            | Some tree -> 
-                yield tree
-                yield! look nextPointFunc nextPoint
-            | None -> 
-                ()
-        }
-        |> List.ofSeq
+module Array =
+    let takeUntil (predicate : 'T -> bool) (array : 'T []) =
+        let rec loop i =
+            if i >= array.Length
+            then array
+            elif predicate array.[i]
+            then array.[0..i]
+            else loop (i+1)
+        loop 0
 
-    let left (point : Point) = { point with x = point.x - 1 }
-    let right (point : Point) = { point with x = point.x + 1 }
-    let up (point : Point) = { point with y = point.y - 1 }
-    let down (point : Point) = { point with y = point.y + 1 }
+[<Test>]
+let Day08_Part2 () = 
+    let trees = 
+        input 
+        |> inputToTrees
+        |> Array.map List.ofArray
+        |> List.ofArray
 
-    let rec takeUntil (stopFunc : 'b -> 'a -> bool) (state : 'b) (xs : seq<'a>) : seq<'a> =
-        seq {
-            if (xs |> (not << Seq.isEmpty))
-            then
-                let head = xs |> Seq.head
-                yield head
-
-                if (stopFunc state head |> not)
-                then 
-                    let tail = xs |> Seq.tail
-                    yield! takeUntil stopFunc state tail
-        }
-
+    let rows =
+        trees.Length - 1
+        
+    let columns =
+        trees.[0].Length - 1
+        
+    let rateScene x y = 
+        let height =
+            trees.[y].[x].height
+        
+        let ups =
+            [|0 .. y-1|]
+            |> Array.rev
+            |> Array.takeUntil
+                (fun y' ->
+                    trees.[y'].[x].height >= height)
+            |> Array.length
+        
+        let downs =
+            [|y+1 .. rows|]
+            |> Array.takeUntil
+                (fun y' ->
+                    trees.[y'].[x].height >= height)
+            |> Array.length
+        
+        let lefts =
+            [|0 .. x-1|]
+            |> Array.rev
+            |> Array.takeUntil
+                (fun x' ->
+                    trees.[y].[x'].height >= height)
+            |> Array.length
+        
+        let rights =
+            [|x+1 .. columns|]
+            |> Array.takeUntil
+                (fun x' ->
+                    trees.[y].[x'].height >= height)
+            |> Array.length
+        
+        let scenicRating = ups * downs * lefts * rights
+        scenicRating
+        
+    let scenicRatings =
+        [|1 .. rows - 1|]
+        |> Array.collect
+            (fun y ->
+                [|1 .. columns - 1|]
+                |> Array.map
+                    (fun x ->
+                        rateScene x y
+                    )
+            )
+        
     let mostScenic =
-        trees
-        |> Array.concat
-        |> Array.map (fun tree -> 
-            [
-                look left
-                look right
-                look up
-                look down
-            ]
-            |> List.map 
-                (fun getTreesInDirectionFromPoint -> 
-                    tree.point
-                    |> getTreesInDirectionFromPoint 
-                    |> takeUntil 
-                        (fun (fromTree : Tree) (currentTree : Tree) -> 
-                            fromTree.height <= currentTree.height
-                        ) tree
-                    |> Seq.length
-                )
-            |> List.reduce 
-                (fun a b -> 
-                    a * b
-                )
-        )
-        |> Seq.max
+        scenicRatings
+        |> Array.max
 
     Assert.AreEqual(268912, mostScenic)

@@ -167,112 +167,199 @@ let example =
         "503,4 -> 502,4 -> 502,9 -> 494,9"
     |]
 
-let parseInput (input : string array) : (int * int) list =
+type Point =
+    (int * int)
+
+type Edges =
+    {
+        minX : int
+        maxX : int
+        minY : int
+        maxY : int
+    }
+    
+    static member OfPointArray (points : Point array) : Edges =
+        points
+        |> Array.fold
+            (fun edges (x, y) ->
+                {
+                    minX = min edges.minX x
+                    maxX = max edges.maxX x
+                    minY = min edges.minY y
+                    maxY = max edges.maxY y
+                }
+            )
+            {
+                minX = System.Int32.MaxValue
+                maxX = System.Int32.MinValue
+                minY = System.Int32.MaxValue
+                maxY = System.Int32.MinValue
+            }
+
+let parseInput (input : string array) : Point array =
     input
-    |> List.ofArray
-    |> List.collect
+    |> Array.collect
         (fun line ->
             line.Split(" -> ", System.StringSplitOptions.RemoveEmptyEntries)
-            |> List.ofArray
-            |> List.map
+            |> Array.map
                 (fun point ->
                     let split = point.Split(",")
                     (int split.[0], int split.[1])
                 )
-            |> List.pairwise
-            |> List.collect
-                (fun ((x1, y1), (x2, y2)) ->
-                    if (x1 = x2) then
-                        let minY = min y1 y2
-                        let maxY = max y1 y2
-                        [ minY..maxY ]
-                        |> List.map (fun y -> (x1, y))
+            |> Array.pairwise
+            |> Array.collect
+                (fun ((fromX, fromY), (toX, toY)) ->
+                    if (fromX = toX) then
+                        let minY = min fromY toY
+                        let maxY = max fromY toY
+                        [| minY..maxY |]
+                        |> Array.map (fun y -> (fromX, y))
                     else
-                        let minX = min x1 x2
-                        let maxX = max x1 x2
-                        [ minX..maxX ]
-                        |> List.map (fun x -> (x, y1))
+                        let minX = min fromX toX
+                        let maxX = max fromX toX
+                        [| minX..maxX |]
+                        |> Array.map (fun x -> (x, fromY))
                 )
         )
-    |> List.distinct
+    |> Array.distinct
 
-let dropSand 
-    (highestY : int)
-    (wallPointSet : Set<int * int>)
+type PointState =
+    | Unchecked of Point
+    | Checked of Point
+
+let rec dropSand
+    (x : int, y : int)
+    (blockedPoints : Point array)
+    : Set<Point> seq
     =
-    let pointIsEmpty =
-        (fun x y ->
-            wallPointSet |> Set.contains (x, y) |> not
+    let edges =
+        Edges.OfPointArray blockedPoints
+        
+    let filledPoints =
+        blockedPoints
+        |> Set.ofArray
+        
+    let highestY =
+        filledPoints
+        |> Set.toList
+        |> List.map snd
+        |> List.max
+        
+    Seq.unfold
+        (fun (filledPoints , stack) ->
+            match stack with
+            | [] ->
+                None
+            | Unchecked (x, y) :: tail ->
+                if (y > highestY) then
+                    None
+                elif (x < edges.minX) then
+                    None
+                elif (x > edges.maxX) then
+                    None
+                else
+                    let newPointsToCheck =
+                        [
+                            (x + 1, y + 1)
+                            (x - 1, y + 1)
+                            (x, y + 1)
+                        ]
+                        |> List.fold (fun stack point ->
+                            if (filledPoints |> Set.contains point) then
+                                stack
+                            else
+                                Unchecked point :: stack
+                        ) []
+                        
+                    let setPointToChecked =
+                        Checked (x, y) :: tail
+                        
+                    let newStack =    
+                        newPointsToCheck @ setPointToChecked
+                        
+                    Some (filledPoints, (filledPoints, newStack))
+            | Checked (x, y) :: stack ->
+                let allPointsAreFilled =
+                    filledPoints |> Set.contains (x + 1, y + 1)
+                    &&
+                    filledPoints |> Set.contains (x - 1, y + 1)
+                    &&
+                    filledPoints |> Set.contains (x, y + 1)
+                    
+                if (allPointsAreFilled) then
+                    let newFilled =
+                        filledPoints
+                        |> Set.add (x, y)
+                        
+                    Some (newFilled, (newFilled, stack))
+                else
+                    None
         )
-
-    let rec dropSand' x y =
-        if (y > highestY) then
-            None
-        elif (wallPointSet |> Set.contains (500, 0)) then
-            None
-        elif (pointIsEmpty x (y + 1)) then
-            dropSand' x (y + 1)
-        elif (pointIsEmpty (x - 1) (y + 1)) then
-            dropSand' (x - 1) (y + 1)
-        elif (pointIsEmpty (x + 1) (y + 1)) then
-            dropSand' (x + 1) (y + 1)
-        else
-            wallPointSet 
-            |> Set.add (x, y) 
-            |> Some
-    dropSand' 500 0
-
-let dropSandUntilEdgeHit wallPoints =
-    let highestY = 
-        wallPoints 
-        |> List.maxBy 
-            (fun (_, y) -> y) 
-        |> snd
-
-    wallPoints
-    |> Set.ofList
-    |> Seq.unfold (fun wallPointSet ->
-        match dropSand highestY wallPointSet with
-        | Some state' -> 
-            Some (state', state')
-        | None -> 
-            None
-    )
-    |> Seq.last
-
+        (filledPoints , [Unchecked (x,y)])
+        
 [<Test>]
 let Day14_Part1 () =
     let wallPoints =
         input
         |> parseInput
-
-    let sandDropped =
-        dropSandUntilEdgeHit wallPoints
-
-    Assert.AreEqual(644, sandDropped.Count - wallPoints.Length)
-
-[<Test>]
-let Day14_Part2 () =    
-    let wallPoints =
-        let wallPoints' =
-            input
-            |> parseInput
-            
-        let highestY = 
-            wallPoints'
-            |> List.maxBy 
-                (fun (_, y) -> y) 
-            |> snd
-            
-        wallPoints'
-        |> List.append 
-            (
-                [-10000..10000]
-                |> List.map (fun x -> (x, highestY + 2))
-            )
-
-    let sandDropped =
-        dropSandUntilEdgeHit wallPoints
-
-    Assert.AreEqual(27324, sandDropped.Count - wallPoints.Length)
+       
+    let droppedSand =
+        dropSand (500 , 0) wallPoints
+        |> Seq.last
     
+    Assert.AreEqual(644, droppedSand.Count - wallPoints.Length)
+    
+[<Test>]
+let Day14_Part2 () =
+    let addFloor (wallPoints : Point array) =
+        let highestY = 
+            wallPoints
+            |> Array.map snd
+            |> Array.max
+            
+        wallPoints
+        |> Array.append 
+            (
+                [| -10000..10000 |] 
+                |> Array.map (fun x -> (x, highestY + 2))
+            )
+    
+    let wallPoints =
+        input
+        |> parseInput
+        |> addFloor
+
+    let droppedSand =
+        dropSand (500 , 0) wallPoints
+        |> Seq.last
+
+    Assert.AreEqual(27324, droppedSand.Count - wallPoints.Length)
+    
+    // let output =
+    //     [| 0 .. edges.maxY  |]
+    //     |> Array.map
+    //         (fun y ->
+    //             [| edges.minX .. edges.maxX |]
+    //             |> Array.map
+    //                 (fun x ->
+    //                     if (filledPoints |> Set.contains (x, y)) then
+    //                         '#'
+    //                     elif (droppedSand |> Set.contains (x, y)) then
+    //                         'O'
+    //                     else
+    //                         '.'
+    //                 )
+    //             |> Array.map string
+    //             |> String.concat ""
+    //         )
+    //
+    // VerifyNUnit.Verifier.Verify(output).ToTask() 
+    // |> Async.AwaitTask  
+    // |> Async.RunSynchronously
+    // |> ignore
+    
+    
+
+    
+    
+
